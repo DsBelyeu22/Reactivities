@@ -1,103 +1,86 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { Container } from "semantic-ui-react";
-import { Activity } from "../models/activity";
 import NavBar from "./NavBar";
 import ActivityDashboard from "../../features/activities/dashboard/ActivityDashboard";
-import { v4 as uuid } from "uuid";
-import agent from "../api/agent";
 import LoadingComponent from "./LoadingComponent";
+import { useStore } from "../stores/store";
+import { observer } from "mobx-react-lite";
 
 function App() {
-	const [activities, setActivities] = useState<Activity[]>([]);
-	const [selected, setSelected] = useState<Activity | undefined>(undefined);
-	const [edit, setEdit] = useState(false);
-	const [loading, setLoading] = useState(true);
-	const [submitting, setSubmitting] = useState(false);
+	const { activityStore } = useStore();
 
 	useEffect(() => {
-		agent.Activities.list().then((response) => {
-			let activities: Activity[] = [];
-			response.forEach((activity) => {
-				activity.date = activity.date.split("T")[0];
-				activities.push(activity);
-			});
-			setActivities(activities);
-			setLoading(false);
-		});
-	}, []);
+		activityStore.loadActivities();
+	}, [activityStore]);
 
-	const handleSelected = (id: string) => {
-		setSelected(
-			activities.find((x) => {
-				return x.id === id;
-			})
-		);
-	};
-	const handleCancelSelected = () => {
-		setSelected(undefined);
-	};
+	//#region ---- Select Activities Handlers (no MobX)----
 
-	function handleFormOpen(id?: string) {
-		id ? handleSelected(id) : handleCancelSelected();
-		setEdit(true);
-	}
+	// const handleSelected = (id: string) => {
+	// 	setSelected(
+	// 		activities.find((x) => {
+	// 			return x.id === id;
+	// 		})
+	// 	);
+	// };
+	// const handleCancelSelected = () => {
+	// 	setSelected(undefined);
+	// };
 
-	const handleFormClose = () => {
-		setEdit(false);
-	};
+	// function handleFormOpen(id?: string) {
+	// 	id ? handleSelected(id) : handleCancelSelected();
+	// 	setEdit(true);
+	// }
 
-	const handleCreateOrEdit = (activity: Activity) => {
-		setSubmitting(true);
-		if (activity.id) {
-			agent.Activities.update(activity).then(() => {
-				setActivities([...activities, { ...activity, id: uuid() }]);
-				setSelected(activity);
-				setEdit(false);
-				setSubmitting(false);
-			});
-		} else {
-			activity.id = uuid();
-			agent.Activities.create(activity).then(() => {
-				setActivities([...activities, activity]);
-				setSelected(activity);
-				setEdit(false);
-				setSubmitting(false);
-			});
-		}
-	};
+	// const handleFormClose = () => {
+	// 	setEdit(false);
+	// };
+	//#endregion
 
-	const handleDelete = (id: string) => {
-		setSubmitting(true);
-		agent.Activities.delete(id).then(() => {
-			setActivities([...activities.filter((x) => x.id !== id)]);
-			setSubmitting(false);
-		});
-	};
+	//#region ---- Create or Edit Handler (no MobX)----
+	// const handleCreateOrEdit = (activity: Activity) => {
+	// 	setSubmitting(true);
+	// 	if (activity.id) {
+	// 		agent.Activities.update(activity).then(() => {
+	// 			setActivities([...activities, { ...activity, id: uuid() }]);
+	// 			setSelected(activity);
+	// 			setEdit(false);
+	// 			setSubmitting(false);
+	// 		});
+	// 	} else {
+	// 		activity.id = uuid();
+	// 		agent.Activities.create(activity).then(() => {
+	// 			setActivities([...activities, activity]);
+	// 			setSelected(activity);
+	// 			setEdit(false);
+	// 			setSubmitting(false);
+	// 		});
+	// 	}
+	// };
+	//#endregion
 
-	if (loading) {
-		return <LoadingComponent content="Loading Your Application" />;
+	//#region  --- Delete Activity Handler ( no MobX) ----
+	// const handleDelete = (id: string) => {
+	// 	setSubmitting(true);
+	// 	agent.Activities.delete(id).then(() => {
+	// 		setActivities([...activities.filter((x) => x.id !== id)]);
+	// 		setSubmitting(false);
+	// 	});
+	// };
+	//#endregion
+
+	if (activityStore.loadingInitial) {
+		return <LoadingComponent content="Loading" />;
 	}
 
 	return (
 		<React.Fragment>
-			<NavBar openForm={handleFormOpen} />
+			<NavBar />
 			<Container style={{ marginTop: "7em" }}>
-				<ActivityDashboard
-					activities={activities}
-					selectedActivity={selected}
-					selectActivity={handleSelected}
-					cancelSelect={handleCancelSelected}
-					editMode={edit}
-					openForm={handleFormOpen}
-					closeForm={handleFormClose}
-					onCreateOrEditClick={handleCreateOrEdit}
-					deleteActivity={handleDelete}
-					submitting={submitting}
-				></ActivityDashboard>
+				<ActivityDashboard />
 			</Container>
 		</React.Fragment>
 	);
 }
 
-export default App;
+export default observer(App);
